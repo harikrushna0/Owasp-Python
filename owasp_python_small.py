@@ -5,6 +5,53 @@ Vulnerabilities:
 1. Hardcoded credentials (A2 – Cryptographic Failures)
 2. SQL Injection (A1 – Injection)
 """
+"""
+OWASP Python Small File Example 2 (150 LOC)
+Test Case: TC02
+Vulnerabilities:
+1. Insecure Deserialization (A8)
+"""
+
+import pickle
+import os
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+# -- Simulate object structure --
+class UserData:
+    def __init__(self, username, data):
+        self.username = username
+        self.data = data
+
+# -- Unsafe Endpoint (OWASP A8: Insecure Deserialization) --
+@app.route("/load", methods=["POST"])
+def load_data():
+    raw = request.data
+    try:
+        # ❌ Insecure deserialization using pickle (arbitrary code execution risk)
+        obj = pickle.loads(raw)
+        if isinstance(obj, UserData):
+            return jsonify({"message": f"Loaded data for {obj.username}", "data": obj.data})
+        else:
+            return jsonify({"error": "Invalid object type"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# -- Safe alternative using JSON (for comparison) --
+@app.route("/safe_load", methods=["POST"])
+def safe_load():
+    data = request.json
+    username = data.get("username")
+    content = data.get("data")
+    if username and content:
+        return jsonify({"message": f"Safely received for {username}", "data": content})
+    return jsonify({"error": "Invalid input"}), 400
+
+# -- Homepage --
+@app.route("/")
+def index():
+    return "OWASP Insecure Deserialization Demo (A8)"
 
 import sqlite3
 from flask import Flask, request
